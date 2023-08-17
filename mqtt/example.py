@@ -2,23 +2,16 @@ import time
 import network
 import utime
 from umqtt.simple import MQTTClient
-import dht
-import machine
-import json
-
+import random
 
 # Default MQTT MQTT_BROKER to connect to
-MQTT_BROKER = 'mqtt-dashboard.com'
-MQTT_PORT = '1883'
-
+MQTT_BROKER = '192.168.0.132'
 CLIENT_ID = 'ESP32_Sensor'
-TOPIC = b"norton/tcc/0560e0414c5086537ca878be8b4debbf/topic"
+TOPIC = b"hello/topic"
 
-SSID = "Eureka_LSE"
-SSID_PASSWORD = "HubEurekaLS3s2"
+SSID = "example"
+SSID_PASSWORD = "example"
 client = MQTTClient(CLIENT_ID, MQTT_BROKER, 1883, keepalive=60)
-
-sensor = dht.DHT11(machine.Pin(18))
 
 
 def do_connect():
@@ -37,31 +30,19 @@ print("Connecting to your wifi...")
 do_connect()
 
 
-def dht_meansurement():
-    sensor.measure()
-    time.sleep(2)
-    temp = sensor.temperature()
-    hum = sensor.humidity()
-    payload = dict(temperature=temp, humidity=hum)
-    # print(f"Measurement", temp, hum)
-    client.publish(TOPIC, json.dumps(payload))
-
 # Received messages from subscriptions will be delivered to this callback
 def sub_cb(topic, msg):
     if msg == b'{\n  "msg": "Server message"\n}':
-        try:
-            dht_meansurement()
-            # read DHT22 here
-        except OSError as e:
-            print("Error ==>", e)
-            client.publish(TOPIC, str("Cant read DHT11").encode())
+        random_temp = random.randint(20, 50)
+        client.publish(TOPIC, str(random_temp).encode())
+        print(f"Publishing temperature :: {random_temp}")
     print(f"New message: {topic}, {msg}")
 
 
 def main():
     client.connect()
     client.set_callback(sub_cb)
-    client.subscribe('norton/tcc/topic')
+    client.subscribe('hello/topic')
     print(f"Connected to MQTT  Broker :: {MQTT_BROKER}, and waiting for callback function to be called!")
 
     while True:
@@ -69,10 +50,9 @@ def main():
             # Blocking wait for message
             print(f'Connected to {MQTT_BROKER} MQTT broker, subscribed to {TOPIC} topic')
             client.check_msg()
-            dht_meansurement()
             # client.publish(TOPIC, 'hello', retain=True)
             # client.wait_msg()
-            time.sleep(5)
+            time.sleep(1)
         else:
             # Non-blocking wait for message
             # client.check_msg()
